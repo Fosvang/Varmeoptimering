@@ -1,0 +1,12 @@
+# Home Assistant secrets and local runtime data
+secrets.yaml
+.storage/
+*.log
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+
+# Editor files
+.vscode/
+.idea/
