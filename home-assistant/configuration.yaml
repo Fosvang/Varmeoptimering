@@ -1,0 +1,77 @@
+
+# Loads default set of integrations. Do not remove.
+# ===============================
+# Home Assistant Configuration
+# ===============================
+
+# Default integrationer
+default_config:
+
+# Frontend themes
+frontend:
+  themes: !include_dir_merge_named themes
+
+# Automations, scripts, scenes
+automation: !include_dir_merge_list automations/
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# GatewayAPI SMS service til Varmeoptimering
+rest_command:
+  varme_gatewayapi_send_sms:
+    url: "https://messaging.gatewayapi.com/mobile/single"
+    method: post
+    content_type: "application/json"
+    headers:
+      Authorization: !secret gatewayapi_authorization_header
+      Accept: "application/json"
+    payload: >
+      {% set clean_recipient = recipient | string | replace('+', '') | replace(' ', '') | replace('-', '') %}
+      {{ {
+        'sender': sender,
+        'message': message,
+        'recipient': clean_recipient | int(0),
+        'label': 'varmeoptimering',
+        'priority': priority
+      } | to_json }}
+
+# === Templates ===
+template: !include_dir_merge_list templates/
+
+# === Sensorer ===
+sensor: !include_dir_merge_list sensors/
+
+# === input_text: Helpers ===
+input_text: !include helpers/input_text.yaml
+input_boolean: !include helpers/input_boolean.yaml
+#input_number: !include helpers/input_number.yaml
+
+# Lovelace dashboards
+lovelace:
+  dashboards:
+    lorawan-dashboard:
+      mode: yaml
+      title: LoRaWAN Dashboard
+      icon: mdi:access-point-network
+      show_in_sidebar: true
+      filename: lovelace/dashboards/lorawan_dashboard.yaml
+    varmeoptimering-dashboard:
+      mode: yaml
+      title: Varmeoptimering
+      icon: mdi:heat-wave
+      show_in_sidebar: true
+      filename: lovelace/dashboards/varmeoptimering_dashboard.yaml
+
+# === Timers ===
+#timer:
+#  silo_alarm_mute_2h:
+#    name: Silo alarm mute 2 timer
+#    duration: "02:00:00"
+
+#  stald_alarm_mute_2h:
+#    name: Stald alarm mute 2 timer
+#    duration: "02:00:00"
+
+# === Packages ===
+homeassistant:
+  packages: !include_dir_named packages

@@ -1,0 +1,54 @@
+- alias: Varme - send alarmnotifikation
+  mode: restart
+
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.varme_alarm_aktiv
+      to: "on"
+
+  conditions:
+    - condition: state
+      entity_id: input_boolean.varme_notifikation_aktiv
+      state: "on"
+
+  actions:
+    - repeat:
+        while:
+          - condition: state
+            entity_id: binary_sensor.varme_alarm_aktiv
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.varme_alarm_ack
+            state: "off"
+          - condition: state
+            entity_id: input_boolean.varme_alarm_muted
+            state: "off"
+
+        sequence:
+          - variables:
+              notify_action: "{{ states('input_text.varme_notify_service') | trim }}"
+              alarm_message: >
+                Varmealarm: {{ states('sensor.varme_alarm_arsag') }}
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ notify_action == 'persistent_notification.create' }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      title: "Varmealarm"
+                      message: "{{ alarm_message }}"
+                      notification_id: varme_alarm
+
+              - conditions:
+                  - condition: template
+                    value_template: "{{ notify_action.startswith('notify.') }}"
+                sequence:
+                  - action: "{{ notify_action }}"
+                    data:
+                      title: "Varmealarm"
+                      message: "{{ alarm_message }}"
+
+          - delay:
+              minutes: "{{ states('input_number.varme_alarm_repeat_min') | int(30) }}"

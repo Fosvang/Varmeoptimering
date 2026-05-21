@@ -69,6 +69,8 @@ views:
             name: Udetemperatur
           - entity: sensor.varme_pumpe_effekt
             name: Pumpeeffekt
+          - entity: sensor.varme_pumpe_effekt_kilde_status
+            name: Pumpeeffekt status
 
       - type: history-graph
         title: Temperaturhistorik 24 timer
@@ -162,6 +164,8 @@ views:
             name: Ude sensor entity
           - entity: input_text.varme_pumpe_power_sensor
             name: Pumpeeffekt sensor entity
+          - entity: sensor.varme_pumpe_effekt_kilde_status
+            name: Pumpeeffekt sensor status
           - entity: input_text.varme_varmekilde_status_sensor
             name: Varmekilde status entity
 
@@ -351,3 +355,5 @@ views:
             name: Aktuel udetemperatur
           - entity: binary_sensor.varme_alarm_aktiv
             name: Alarm aktiv
+
+  - !include varmeoptimering_economy_view.yaml

@@ -1,0 +1,164 @@
+title: Økonomi
+path: varme-okonomi
+icon: mdi:cash-multiple
+type: masonry
+badges:
+  - entity: sensor.varme_okonomi_elpris
+    name: Elpris
+  - entity: sensor.varme_okonomi_energi_24t
+    name: kWh 24t
+  - entity: sensor.varme_okonomi_omkostning_24t
+    name: kr 24t
+  - entity: sensor.varme_okonomi_lager_procent
+    name: Lager
+cards:
+  - type: entities
+    title: Økonomi overblik
+    show_header_toggle: false
+    state_color: true
+    entities:
+      - entity: sensor.varme_okonomi_effekt
+        name: Aktuel effekt
+      - entity: binary_sensor.varme_okonomi_drift_aktiv
+        name: Drift aktiv
+      - entity: sensor.varme_okonomi_elpris
+        name: Aktuel elpris
+      - entity: sensor.varme_okonomi_energi_1t
+        name: Forbrug denne time
+      - entity: sensor.varme_okonomi_energi_24t
+        name: Forbrug 24 timer
+      - entity: sensor.varme_okonomi_energi_7d
+        name: Forbrug 7 dage
+      - entity: sensor.varme_okonomi_omkostning_1t
+        name: Omkostning denne time
+      - entity: sensor.varme_okonomi_omkostning_24t
+        name: Omkostning 24 timer
+      - entity: sensor.varme_okonomi_omkostning_7d
+        name: Omkostning 7 dage
+
+  - type: entities
+    title: Elpris og Nord Pool
+    show_header_toggle: false
+    entities:
+      - entity: input_select.varme_okonomi_pristype
+        name: Pristype
+      - entity: input_text.varme_okonomi_nordpool_pris_sensor
+        name: Nord Pool pris sensor
+      - entity: input_number.varme_okonomi_fast_elpris
+        name: Fast elpris
+      - entity: input_number.varme_okonomi_el_tillaeg
+        name: Tillæg pr. kWh
+      - entity: input_number.varme_okonomi_moms_faktor
+        name: Moms faktor
+      - entity: sensor.varme_okonomi_elpris
+        name: Beregnet elpris
+
+  - type: entities
+    title: Måling
+    show_header_toggle: false
+    state_color: true
+    entities:
+      - entity: input_text.varme_okonomi_varmeeffekt_sensor
+        name: Shelly EM / effekt sensor
+      - entity: sensor.varme_okonomi_effekt_kilde_status
+        name: Effekt sensor status
+      - entity: input_number.varme_okonomi_drift_graense_w
+        name: Driftgrænse
+      - entity: sensor.varme_okonomi_driftstid_1_time
+        name: Driftstid 1 time
+      - entity: sensor.varme_okonomi_driftstid_24_timer
+        name: Driftstid 24 timer
+      - entity: sensor.varme_okonomi_driftstid_7_dage
+        name: Driftstid 7 dage
+      - entity: sensor.varme_okonomi_start_antal_24_timer
+        name: Starter 24 timer
+
+  - type: entities
+    title: Brændsel og priser
+    show_header_toggle: false
+    entities:
+      - entity: input_select.varme_okonomi_braendselstype
+        name: Brændselstype
+      - entity: input_number.varme_okonomi_oliepris
+        name: Oliepris
+      - entity: input_number.varme_okonomi_pillepris
+        name: Pillepris
+      - entity: input_number.varme_okonomi_halmpris
+        name: Halmpris
+      - entity: input_number.varme_okonomi_braendvaerdi
+        name: Brændværdi
+      - entity: input_number.varme_okonomi_braendsel_pr_time
+        name: Brændsel ved drift
+      - entity: input_number.varme_okonomi_virkningsgrad
+        name: Virkningsgrad
+      - entity: sensor.varme_okonomi_braendselspris
+        name: Aktiv brændselspris
+
+  - type: entities
+    title: Brændselsforbrug
+    show_header_toggle: false
+    entities:
+      - entity: sensor.varme_okonomi_braendsel_1_time
+        name: Brændsel 1 time
+      - entity: sensor.varme_okonomi_braendsel_24t
+        name: Brændsel 24 timer
+      - entity: sensor.varme_okonomi_braendsel_7d
+        name: Brændsel 7 dage
+      - entity: sensor.varme_okonomi_braendselsomkostning_1_time
+        name: Brændselsomkostning 1 time
+      - entity: sensor.varme_okonomi_braendselsomkostning_24t
+        name: Brændselsomkostning 24 timer
+      - entity: sensor.varme_okonomi_braendselsomkostning_7d
+        name: Brændselsomkostning 7 dage
+
+  - type: entities
+    title: Lager og genopfyldning
+    show_header_toggle: false
+    entities:
+      - entity: input_number.varme_okonomi_lager_kapacitet
+        name: Lagerkapacitet
+      - entity: input_number.varme_okonomi_lager_aktuelt
+        name: Aktuel beholdning
+      - entity: input_number.varme_okonomi_paafyldning
+        name: Normal påfyldning
+      - entity: sensor.varme_okonomi_lager_procent
+        name: Lager procent
+      - entity: sensor.varme_okonomi_resterende_timer
+        name: Resterende timer
+      - entity: sensor.varme_okonomi_resterende_dage
+        name: Resterende dage
+      - entity: sensor.varme_okonomi_naste_pafyldning
+        name: Cirka næste påfyldning
+      - entity: sensor.varme_okonomi_beholdning_efter_pafyldning
+        name: Beholdning efter påfyldning
+
+  - type: entities
+    title: SCOP og varmeproduktion
+    show_header_toggle: false
+    entities:
+      - entity: sensor.varme_okonomi_estimeret_varmeproduktion_24_timer
+        name: Estimeret varmeproduktion 24t
+      - entity: sensor.varme_okonomi_scop_24_timer
+        name: SCOP 24t
+
+  - type: history-graph
+    title: Forbrug og pris 24 timer
+    hours_to_show: 24
+    entities:
+      - entity: sensor.varme_okonomi_effekt
+        name: Effekt
+      - entity: sensor.varme_okonomi_elpris
+        name: Elpris
+      - entity: sensor.varme_okonomi_omkostning_rate
+        name: kr/h
+
+  - type: history-graph
+    title: Drift 7 dage
+    hours_to_show: 168
+    entities:
+      - entity: binary_sensor.varme_okonomi_drift_aktiv
+        name: Drift aktiv
+      - entity: sensor.varme_okonomi_energi_24t
+        name: kWh pr. døgn
+      - entity: sensor.varme_okonomi_omkostning_24t
+        name: kr pr. døgn

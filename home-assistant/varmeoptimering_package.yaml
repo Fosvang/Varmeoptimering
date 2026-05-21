@@ -1,0 +1,782 @@
+# Home Assistant package: Varmeoptimering
+# Placering: packages/varmeoptimering_package.yaml
+#
+# Forventet configuration.yaml:
+# homeassistant:
+#   packages: !include_dir_named packages
+#
+# Udfyld input_text entiteterne med de rigtige entity_id'er fra installationen.
+# Eksempel: sensor.kedel_fremlob, sensor.kedel_returlob, sensor.ude_temperatur.
+
+recorder:
+  purge_keep_days: 8
+
+input_text:
+  varme_fremlob_sensor:
+    name: Varme - fremløb sensor entity
+    icon: mdi:thermometer-chevron-up
+    initial: sensor.shelly_1pm_gen3_cc8da243a548_fremlob_temperatur
+
+  varme_returlob_sensor:
+    name: Varme - returløb sensor entity
+    icon: mdi:thermometer-chevron-down
+    initial: sensor.shelly_1pm_gen3_cc8da243a548_returlob_temperatur
+
+  varme_ude_sensor:
+    name: Varme - ude sensor entity
+    icon: mdi:thermometer-lines
+    initial: sensor.shelly_1pm_gen3_cc8da26223e0_udetemperatur_foler
+
+  varme_pumpe_power_sensor:
+    name: Varme - pumpe effekt sensor entity
+    icon: mdi:flash
+    initial: sensor.varmepumpe_power
+
+  varme_varmekilde_status_sensor:
+    name: Varme - varmekilde status entity
+    icon: mdi:heat-wave
+    initial: binary_sensor.varmekilde_drift
+
+  varme_notify_service:
+    name: Varme - notifikation service
+    icon: mdi:bell
+    initial: persistent_notification.create
+
+  varme_sms_service:
+    name: Varme - SMS service
+    icon: mdi:message-alert
+    max: 120
+    initial: rest_command.varme_gatewayapi_send_sms
+
+  varme_sms_sender:
+    name: Varme - SMS afsender
+    icon: mdi:card-account-phone
+    max: 15
+    initial: VarmeAlarm
+
+  varme_sms_modtager:
+    name: Varme - SMS modtagere
+    icon: mdi:cellphone
+    max: 255
+    initial: ""
+
+input_select:
+  varme_statistik_periode:
+    name: Varme - statistik periode
+    icon: mdi:calendar-clock
+    options:
+      - 1 time
+      - 24 timer
+      - 7 dage
+    initial: 24 timer
+
+  varme_anlaegstype:
+    name: Varme - anlægstype
+    icon: mdi:factory
+    options:
+      - Oliefyr
+      - Halmfyr
+      - Varmepumpe
+      - Fjernvarme
+      - Andet
+    initial: Varmepumpe
+
+  varme_sms_prioritet:
+    name: Varme - SMS prioritet
+    icon: mdi:message-badge
+    options:
+      - normal
+      - urgent
+    initial: normal
+
+input_number:
+  varme_fremlob_min:
+    name: Varme - min fremløb under drift
+    min: 5
+    max: 95
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 45
+
+  varme_fremlob_max:
+    name: Varme - maks fremløb
+    min: 20
+    max: 110
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 80
+
+  varme_returlob_max:
+    name: Varme - maks returløb
+    min: 10
+    max: 95
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 45
+
+  varme_delta_t_min:
+    name: Varme - lav delta T graense
+    min: 1
+    max: 40
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 8
+
+  varme_delta_t_max:
+    name: Varme - hoj delta T graense
+    min: 1
+    max: 60
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 30
+
+  varme_alarm_hysterese:
+    name: Varme - alarm hysterese
+    min: 0
+    max: 10
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 2
+
+  varme_frost_graense:
+    name: Varme - frost grænse
+    min: -20
+    max: 20
+    step: 0.5
+    unit_of_measurement: "C"
+    mode: box
+    initial: 3
+
+  varme_alarm_repeat_min:
+    name: Varme - gentag alarm hvert minut
+    min: 5
+    max: 120
+    step: 5
+    unit_of_measurement: "min"
+    mode: box
+    initial: 30
+
+input_boolean:
+  varme_optimering_aktiv:
+    name: Varmeoptimering aktiv
+    icon: mdi:heat-wave
+    initial: true
+
+  varme_notifikation_aktiv:
+    name: Varme notifikation aktiv
+    icon: mdi:bell-ring
+    initial: true
+
+  varme_sms_aktiv:
+    name: Varme SMS aktiv
+    icon: mdi:message-alert
+    initial: false
+
+  varme_frostsikring_aktiv:
+    name: Varme frostsikring aktiv
+    icon: mdi:snowflake-alert
+    initial: true
+
+  varme_alarm_latch:
+    name: Varme alarm aktiv
+    icon: mdi:alert-circle
+    initial: false
+
+  varme_alarm_ack:
+    name: Varme alarm kvitteret
+    icon: mdi:check-circle
+    initial: false
+
+  varme_alarm_muted:
+    name: Varme alarm på pause
+    icon: mdi:bell-off
+    initial: false
+
+timer:
+  varme_alarm_mute_2h:
+    name: Varme alarm pause 2 timer
+    duration: "02:00:00"
+
+script:
+  varme_alarm_kvitter:
+    alias: Varme alarm kvitter
+    mode: single
+    sequence:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.varme_alarm_ack
+
+  varme_alarm_pause_2h:
+    alias: Varme alarm pause 2 timer
+    mode: single
+    sequence:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.varme_alarm_muted
+      - service: timer.start
+        target:
+          entity_id: timer.varme_alarm_mute_2h
+
+  varme_alarm_reset:
+    alias: Varme alarm reset
+    mode: single
+    sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.varme_alarm_latch
+            - input_boolean.varme_alarm_ack
+            - input_boolean.varme_alarm_muted
+      - service: timer.cancel
+        target:
+          entity_id: timer.varme_alarm_mute_2h
+
+  varme_sms_test:
+    alias: Varme SMS test
+    mode: single
+    sequence:
+      - service: script.varme_send_alarm
+        data:
+          title: "Varmeoptimering SMS test"
+          message: >
+            Test fra Varmeoptimering.
+            Status: {{ states('sensor.varme_status') }}.
+            Fremløb: {{ states('sensor.varme_fremlob') }} C.
+            Returløb: {{ states('sensor.varme_returlob') }} C.
+            Delta T: {{ states('sensor.varme_delta_t') }} C.
+
+  varme_send_alarm:
+    alias: Varme send alarm
+    mode: queued
+    fields:
+      title:
+        description: Titel til alarmen
+      message:
+        description: Alarmtekst
+    sequence:
+      - variables:
+          notify_service: "{{ states('input_text.varme_notify_service') }}"
+          sms_service: "{{ states('input_text.varme_sms_service') }}"
+          sms_sender: "{{ states('input_text.varme_sms_sender') }}"
+          sms_priority: "{{ states('input_select.varme_sms_prioritet') }}"
+          sms_targets: >
+            {% set raw = states('input_text.varme_sms_modtager') %}
+            {% set normalized = raw | replace(';', ',') | replace('\n', ',') %}
+            {{ normalized.split(',') | map('trim') | reject('eq', '') | list }}
+          alarm_title: "{{ title | default('Varmeoptimering') }}"
+          alarm_message: "{{ message | default('Alarm fra varmeoptimering') }}"
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.varme_notifikation_aktiv
+                state: "on"
+              - condition: template
+                value_template: >
+                  {{ notify_service not in ['unknown', 'unavailable', 'none', '']
+                     and notify_service.startswith('notify.') }}
+            sequence:
+              - service: "{{ notify_service }}"
+                data:
+                  title: "{{ alarm_title }}"
+                  message: "{{ alarm_message }}"
+                  data:
+                    actions:
+                      - action: VARME_ALARM_ACK
+                        title: Kvitter
+                      - action: VARME_ALARM_PAUSE_2H
+                        title: Pause 2 timer
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.varme_notifikation_aktiv
+                state: "on"
+              - condition: template
+                value_template: >
+                  {{ notify_service == 'persistent_notification.create' }}
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "{{ alarm_title }}"
+                  message: "{{ alarm_message }}"
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.varme_sms_aktiv
+                state: "on"
+              - condition: template
+                value_template: >
+                  {{ sms_service not in ['unknown', 'unavailable', 'none', '']
+                      and sms_targets | count > 0 }}
+            sequence:
+              - repeat:
+                  for_each: "{{ sms_targets }}"
+                  sequence:
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ sms_service == 'rest_command.varme_gatewayapi_send_sms' }}"
+                          sequence:
+                            - service: rest_command.varme_gatewayapi_send_sms
+                              data:
+                                recipient: "{{ repeat.item }}"
+                                sender: "{{ sms_sender }}"
+                                priority: "{{ sms_priority }}"
+                                message: "{{ alarm_message }}"
+                      default:
+                        - service: "{{ sms_service }}"
+                          data:
+                            target: "{{ repeat.item }}"
+                            message: "{{ alarm_message }}"
+
+template:
+  - sensor:
+      - name: Varme fremløb
+        unique_id: varme_fremlob
+        unit_of_measurement: "C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:thermometer-chevron-up
+        availability: >
+          {{ states(states('input_text.varme_fremlob_sensor')) not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {{ states(states('input_text.varme_fremlob_sensor')) | float(none) }}
+
+      - name: Varme returløb
+        unique_id: varme_returlob
+        unit_of_measurement: "C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:thermometer-chevron-down
+        availability: >
+          {{ states(states('input_text.varme_returlob_sensor')) not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {{ states(states('input_text.varme_returlob_sensor')) | float(none) }}
+
+      - name: Varme ude temperatur
+        unique_id: varme_ude_temperatur
+        unit_of_measurement: "C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:thermometer-lines
+        availability: >
+          {{ states(states('input_text.varme_ude_sensor')) not in ['unknown', 'unavailable', 'none', ''] }}
+        state: >
+          {{ states(states('input_text.varme_ude_sensor')) | float(none) }}
+
+      - name: Varme pumpe effekt
+        default_entity_id: sensor.varme_pumpe_effekt
+        unique_id: varme_pumpe_effekt
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: mdi:flash
+        state: >
+          {{ states(states('input_text.varme_pumpe_power_sensor')) | float(0) }}
+
+      - name: Varme pumpe effekt kilde status
+        default_entity_id: sensor.varme_pumpe_effekt_kilde_status
+        unique_id: varme_pumpe_effekt_kilde_status
+        icon: mdi:flash-alert
+        state: >
+          {% set entity = states('input_text.varme_pumpe_power_sensor') %}
+          {% set value = states(entity) if entity not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' %}
+          {% if entity in ['unknown', 'unavailable', 'none', ''] %}
+            Pumpeeffekt sensor mangler
+          {% elif value in ['unknown', 'unavailable', 'none', ''] %}
+            Pumpeeffekt sensor utilgængelig
+          {% elif value | float(none) is none %}
+            Pumpeeffekt sensor er ikke numerisk
+          {% else %}
+            OK
+          {% endif %}
+
+      - name: Varme delta T
+        unique_id: varme_delta_t
+        unit_of_measurement: "C"
+        state_class: measurement
+        icon: mdi:delta
+        availability: >
+          {{ states('sensor.varme_fremlob') | float(none) is not none
+              and states('sensor.varme_returlob') | float(none) is not none }}
+        state: >
+          {{ (states('sensor.varme_fremlob') | float - states('sensor.varme_returlob') | float) | round(1) }}
+
+      - name: Varme varmekilde status
+        unique_id: varme_varmekilde_status
+        icon: mdi:heat-wave
+        state: >
+          {% set entity = states('input_text.varme_varmekilde_status_sensor') %}
+          {% if entity in ['unknown', 'unavailable', 'none', ''] %}
+            Ikke opsat
+          {% else %}
+            {{ states(entity) }}
+          {% endif %}
+
+      - name: Varme SMS modtagere antal
+        unique_id: varme_sms_modtagere_antal
+        icon: mdi:cellphone-message
+        state: >
+          {% set raw = states('input_text.varme_sms_modtager') %}
+          {% set normalized = raw | replace(';', ',') | replace('\n', ',') %}
+          {{ normalized.split(',') | map('trim') | reject('eq', '') | list | count }}
+
+      - name: Varme SMS status
+        unique_id: varme_sms_status
+        icon: >
+          {% if is_state('input_boolean.varme_sms_aktiv', 'on')
+                and states('input_text.varme_sms_service') not in ['unknown', 'unavailable', 'none', '']
+                and states('input_text.varme_sms_sender') not in ['unknown', 'unavailable', 'none', '']
+                and states('sensor.varme_sms_modtagere_antal') | int(0) > 0 %}
+            mdi:message-check
+          {% elif is_state('input_boolean.varme_sms_aktiv', 'on') %}
+            mdi:message-alert
+          {% else %}
+            mdi:message-off
+          {% endif %}
+        state: >
+          {% if not is_state('input_boolean.varme_sms_aktiv', 'on') %}
+            Deaktiveret
+          {% elif states('input_text.varme_sms_service') in ['unknown', 'unavailable', 'none', ''] %}
+            SMS service mangler
+          {% elif states('input_text.varme_sms_sender') in ['unknown', 'unavailable', 'none', ''] %}
+            SMS afsender mangler
+          {% elif states('sensor.varme_sms_modtagere_antal') | int(0) == 0 %}
+            SMS modtagere mangler
+          {% else %}
+            Klar
+          {% endif %}
+
+      - name: Varme status
+        unique_id: varme_status
+        icon: >
+          {% if is_state('binary_sensor.varme_alarm_aktiv', 'on') %}mdi:alert
+          {% elif is_state('binary_sensor.varme_advarsel_aktiv', 'on') %}mdi:alert-outline
+          {% else %}mdi:check-circle
+          {% endif %}
+        state: >
+          {% if is_state('binary_sensor.varme_sensorfejl', 'on') %}
+            Sensorfejl
+          {% elif is_state('input_boolean.varme_alarm_latch', 'on') %}
+            Alarm
+          {% elif is_state('binary_sensor.varme_fremlob_for_lav', 'on') %}
+            Lav fremløb
+          {% elif is_state('binary_sensor.varme_fremlob_for_hoj', 'on') %}
+            Hoj fremløb
+          {% elif is_state('binary_sensor.varme_returlob_for_hoj', 'on') %}
+            Hoj returløb
+          {% elif is_state('binary_sensor.varme_delta_t_for_lav', 'on') %}
+            Lav delta T
+          {% elif is_state('binary_sensor.varme_delta_t_for_hoj', 'on') %}
+            Hoj delta T
+          {% elif is_state('binary_sensor.varme_frost_risiko', 'on') %}
+            Frost risiko
+          {% else %}
+            Normal
+          {% endif %}
+
+      - name: Varme alarm årsag
+        unique_id: varme_alarm_arsag
+        icon: mdi:alert-decagram
+        state: >
+          {% if is_state('binary_sensor.varme_sensorfejl', 'on') %}
+            Fremløb, returløb eller anden nødvendig sensor mangler
+          {% elif is_state('binary_sensor.varme_fremlob_for_lav', 'on') %}
+            Fremløbstemperatur er for lav under drift
+          {% elif is_state('binary_sensor.varme_fremlob_for_hoj', 'on') %}
+            Fremløbstemperatur er for høj
+          {% elif is_state('binary_sensor.varme_returlob_for_hoj', 'on') %}
+            Returløbstemperatur er for høj
+          {% elif is_state('binary_sensor.varme_delta_t_for_lav', 'on') %}
+            Delta T er for lav
+          {% elif is_state('binary_sensor.varme_delta_t_for_hoj', 'on') %}
+            Delta T er for høj
+          {% elif is_state('binary_sensor.varme_frost_risiko', 'on') %}
+            Udetemperatur er under frostgrænse
+          {% else %}
+            Ingen alarm
+          {% endif %}
+
+      - name: Varme anbefaling
+        unique_id: varme_anbefaling
+        icon: mdi:lightbulb-on-outline
+        state: >
+          {% if is_state('binary_sensor.varme_sensorfejl', 'on') %}
+            Kontroller sensor-entity og forbindelse.
+          {% elif is_state('binary_sensor.varme_fremlob_for_lav', 'on') %}
+            Kontroller varmekilde, setpunkt, brænder og varmebehov.
+          {% elif is_state('binary_sensor.varme_fremlob_for_hoj', 'on') %}
+            Kontroller setpunkt, shunt, regulering og sikkerhedsindstillinger.
+          {% elif is_state('binary_sensor.varme_returlob_for_hoj', 'on') %}
+            Saenk returtemperatur via bedre afkoling, lavere flow eller korrekt indregulering.
+          {% elif is_state('binary_sensor.varme_delta_t_for_lav', 'on') %}
+            Kontroller flow, bypass, pumpehastighed og varmeaftag.
+          {% elif is_state('binary_sensor.varme_delta_t_for_hoj', 'on') %}
+            Kontroller lavt flow, tilstoppet filter, luft i systemet eller pumpefejl.
+          {% elif is_state('binary_sensor.varme_frost_risiko', 'on') %}
+            Hold cirkulation og varme aktiv ved udsatte ror og installationer.
+          {% else %}
+            Anlægget ser normalt ud.
+          {% endif %}
+
+      - name: Varme drift score
+        unique_id: varme_drift_score
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:gauge
+        state: >
+          {% set score = 100 %}
+          {% if is_state('binary_sensor.varme_sensorfejl', 'on') %}
+            {% set score = score - 40 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_fremlob_for_lav', 'on') %}
+            {% set score = score - 20 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_fremlob_for_hoj', 'on') %}
+            {% set score = score - 20 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_returlob_for_hoj', 'on') %}
+            {% set score = score - 20 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_delta_t_for_lav', 'on') %}
+            {% set score = score - 20 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_delta_t_for_hoj', 'on') %}
+            {% set score = score - 15 %}
+          {% endif %}
+          {% if is_state('binary_sensor.varme_frost_risiko', 'on') %}
+            {% set score = score - 10 %}
+          {% endif %}
+          {{ [0, score] | max }}
+
+  - binary_sensor:
+      - name: Varme sensorfejl
+        unique_id: varme_sensorfejl
+        device_class: problem
+        icon: mdi:connection
+        state: >
+          {{ states('sensor.varme_fremlob') in ['unknown', 'unavailable', 'none', '']
+              or states('sensor.varme_returlob') in ['unknown', 'unavailable', 'none', ''] }}
+
+      - name: Varme fremløb for lav
+        unique_id: varme_fremlob_for_lav
+        device_class: problem
+        icon: mdi:thermometer-alert
+        state: >
+          {% set f = states('sensor.varme_fremlob') | float(none) %}
+          {% set min = states('input_number.varme_fremlob_min') | float(45) %}
+          {{ f is not none and f < min }}
+
+      - name: Varme fremløb for høj
+        unique_id: varme_fremlob_for_hoj
+        device_class: problem
+        icon: mdi:thermometer-alert
+        state: >
+          {% set f = states('sensor.varme_fremlob') | float(none) %}
+          {% set max = states('input_number.varme_fremlob_max') | float(80) %}
+          {{ f is not none and f > max }}
+
+      - name: Varme returløb for høj
+        unique_id: varme_returlob_for_hoj
+        device_class: problem
+        icon: mdi:thermometer-alert
+        state: >
+          {% set r = states('sensor.varme_returlob') | float(none) %}
+          {% set max = states('input_number.varme_returlob_max') | float(45) %}
+          {{ r is not none and r > max }}
+
+      - name: Varme delta T for lav
+        unique_id: varme_delta_t_for_lav
+        device_class: problem
+        icon: mdi:delta
+        state: >
+          {% set d = states('sensor.varme_delta_t') | float(none) %}
+          {% set min = states('input_number.varme_delta_t_min') | float(8) %}
+          {{ d is not none and d < min }}
+
+      - name: Varme delta T for høj
+        unique_id: varme_delta_t_for_hoj
+        device_class: problem
+        icon: mdi:delta
+        state: >
+          {% set d = states('sensor.varme_delta_t') | float(none) %}
+          {% set max = states('input_number.varme_delta_t_max') | float(30) %}
+          {{ d is not none and d > max }}
+
+      - name: Varme frost risiko
+        unique_id: varme_frost_risiko
+        device_class: problem
+        icon: mdi:snowflake-alert
+        state: >
+          {% set u = states('sensor.varme_ude_temperatur') | float(none) %}
+          {% set frost = states('input_number.varme_frost_graense') | float(3) %}
+          {{ is_state('input_boolean.varme_frostsikring_aktiv', 'on')
+              and u is not none
+              and u < frost }}
+
+      - name: Varme alarm aktiv
+        unique_id: varme_alarm_aktiv
+        device_class: problem
+        icon: mdi:alert-circle
+        state: >
+          {{ is_state('input_boolean.varme_alarm_latch', 'on') }}
+
+      - name: Varme advarsel aktiv
+        unique_id: varme_advarsel_aktiv
+        device_class: problem
+        icon: mdi:alert-outline
+        state: >
+          {{ is_state('binary_sensor.varme_frost_risiko', 'on')
+              or is_state('binary_sensor.varme_delta_t_for_lav', 'on')
+              or is_state('binary_sensor.varme_delta_t_for_hoj', 'on') }}
+
+automation:
+  - id: varme_alarm_taend
+    alias: Varme alarm - taend ved fejl
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.varme_sensorfejl
+          - binary_sensor.varme_fremlob_for_lav
+          - binary_sensor.varme_fremlob_for_hoj
+          - binary_sensor.varme_returlob_for_hoj
+          - binary_sensor.varme_delta_t_for_lav
+          - binary_sensor.varme_delta_t_for_hoj
+          - binary_sensor.varme_frost_risiko
+        to: "on"
+        for:
+          minutes: 2
+    condition:
+      - condition: state
+        entity_id: input_boolean.varme_optimering_aktiv
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.varme_alarm_latch
+        state: "off"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.varme_alarm_latch
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.varme_alarm_ack
+      - service: script.varme_send_alarm
+        data:
+          title: "Varmeoptimering alarm"
+          message: >
+            {{ states('sensor.varme_alarm_arsag') }}.
+            Status: {{ states('sensor.varme_status') }}.
+            Fremlob: {{ states('sensor.varme_fremlob') }} C.
+            Returlob: {{ states('sensor.varme_returlob') }} C.
+            Delta T: {{ states('sensor.varme_delta_t') }} C.
+            Anbefaling: {{ states('sensor.varme_anbefaling') }}
+
+  - id: varme_alarm_sluk
+    alias: Varme alarm - nulstil naar normal
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.varme_sensorfejl
+          - binary_sensor.varme_fremlob_for_lav
+          - binary_sensor.varme_fremlob_for_hoj
+          - binary_sensor.varme_returlob_for_hoj
+          - binary_sensor.varme_delta_t_for_lav
+          - binary_sensor.varme_delta_t_for_hoj
+          - binary_sensor.varme_frost_risiko
+        to: "off"
+        for:
+          minutes: 5
+    condition:
+      - condition: state
+        entity_id: input_boolean.varme_alarm_latch
+        state: "on"
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.varme_sensorfejl', 'off')
+              and is_state('binary_sensor.varme_fremlob_for_lav', 'off')
+              and is_state('binary_sensor.varme_fremlob_for_hoj', 'off')
+              and is_state('binary_sensor.varme_returlob_for_hoj', 'off')
+              and is_state('binary_sensor.varme_delta_t_for_lav', 'off')
+              and is_state('binary_sensor.varme_delta_t_for_hoj', 'off')
+              and is_state('binary_sensor.varme_frost_risiko', 'off') }}
+    action:
+      - service: script.varme_alarm_reset
+      - service: script.varme_send_alarm
+        data:
+          title: "Varmeoptimering normal"
+          message: >
+            Varmeanlaegget er tilbage i normal drift.
+            Fremlob: {{ states('sensor.varme_fremlob') }} C.
+            Returlob: {{ states('sensor.varme_returlob') }} C.
+            Delta T: {{ states('sensor.varme_delta_t') }} C.
+
+  - id: varme_alarm_gentag
+    alias: Varme alarm - gentag aktiv alarm
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: state
+        entity_id: input_boolean.varme_optimering_aktiv
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.varme_alarm_latch
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.varme_alarm_ack
+        state: "off"
+      - condition: state
+        entity_id: input_boolean.varme_alarm_muted
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set repeat = states('input_number.varme_alarm_repeat_min') | int(30) %}
+          {{ repeat > 0 and now().minute % repeat == 0 }}
+    action:
+      - service: script.varme_send_alarm
+        data:
+          title: "Varme alarm stadig aktiv"
+          message: >
+            {{ states('sensor.varme_alarm_arsag') }}.
+            Fremlob: {{ states('sensor.varme_fremlob') }} C.
+            Returlob: {{ states('sensor.varme_returlob') }} C.
+            Delta T: {{ states('sensor.varme_delta_t') }} C.
+
+  - id: varme_alarm_pause_timer_slut
+    alias: Varme alarm - pause slut
+    mode: single
+    trigger:
+      - platform: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.varme_alarm_mute_2h
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.varme_alarm_muted
+
+  - id: varme_notification_actions
+    alias: Varme alarm - notifikationsknapper
+    mode: queued
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+    action:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.data.action == 'VARME_ALARM_ACK' }}"
+            sequence:
+              - service: script.varme_alarm_kvitter
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.data.action == 'VARME_ALARM_PAUSE_2H' }}"
+            sequence:
+              - service: script.varme_alarm_pause_2h

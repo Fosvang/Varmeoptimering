@@ -1,0 +1,446 @@
+# Home Assistant package: Varmeoptimering økonomi
+# Formål: forbrug, energi, brændsel, Nord Pool-pris og økonomi.
+#
+# Krav:
+# - Home Assistant Nord Pool integration skal oprette en aktuel pris-sensor.
+# - Angiv Nord Pool sensorens entity_id i input_text.varme_okonomi_nordpool_pris_sensor.
+# - Angiv Shelly EM / effektmåler entity_id i input_text.varme_okonomi_varmeeffekt_sensor.
+
+input_text:
+  varme_okonomi_varmeeffekt_sensor:
+    name: Varme økonomi - varmeeffekt sensor
+    icon: mdi:flash
+    initial: sensor.varme_pumpe_effekt
+
+  varme_okonomi_nordpool_pris_sensor:
+    name: Varme økonomi - Nord Pool pris sensor
+    icon: mdi:currency-usd
+    initial: sensor.nord_pool_current_price
+
+input_select:
+  varme_okonomi_pristype:
+    name: Varme økonomi - elpris type
+    icon: mdi:transmission-tower
+    options:
+      - Nord Pool
+      - Fast pris
+    initial: Nord Pool
+
+  varme_okonomi_braendselstype:
+    name: Varme økonomi - brændselstype
+    icon: mdi:fire
+    options:
+      - El
+      - Olie
+      - Træpiller
+      - Halm
+    initial: El
+
+input_number:
+  varme_okonomi_fast_elpris:
+    name: Varme økonomi - fast elpris
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "kr/kWh"
+    mode: box
+    initial: 2.50
+
+  varme_okonomi_el_tillaeg:
+    name: Varme økonomi - el tillæg
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "kr/kWh"
+    mode: box
+    initial: 0
+
+  varme_okonomi_moms_faktor:
+    name: Varme økonomi - moms faktor
+    min: 1
+    max: 2
+    step: 0.01
+    mode: box
+    initial: 1.25
+
+  varme_okonomi_drift_graense_w:
+    name: Varme økonomi - driftgrænse
+    min: 0
+    max: 10000
+    step: 10
+    unit_of_measurement: "W"
+    mode: box
+    initial: 50
+
+  varme_okonomi_oliepris:
+    name: Varme økonomi - oliepris
+    min: 0
+    max: 50
+    step: 0.01
+    unit_of_measurement: "kr/l"
+    mode: box
+    initial: 12
+
+  varme_okonomi_pillepris:
+    name: Varme økonomi - pillepris
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "kr/kg"
+    mode: box
+    initial: 3
+
+  varme_okonomi_halmpris:
+    name: Varme økonomi - halmpris
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "kr/kg"
+    mode: box
+    initial: 1
+
+  varme_okonomi_braendvaerdi:
+    name: Varme økonomi - brændværdi
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "kWh/enhed"
+    mode: box
+    initial: 10
+
+  varme_okonomi_braendsel_pr_time:
+    name: Varme økonomi - brændsel ved drift
+    min: 0
+    max: 500
+    step: 0.01
+    unit_of_measurement: "enhed/h"
+    mode: box
+    initial: 1
+
+  varme_okonomi_virkningsgrad:
+    name: Varme økonomi - virkningsgrad
+    min: 0.1
+    max: 1
+    step: 0.01
+    mode: box
+    initial: 0.85
+
+  varme_okonomi_lager_kapacitet:
+    name: Varme økonomi - lager kapacitet
+    min: 0
+    max: 100000
+    step: 1
+    unit_of_measurement: "enhed"
+    mode: box
+    initial: 1000
+
+  varme_okonomi_lager_aktuelt:
+    name: Varme økonomi - lager beholdning
+    min: 0
+    max: 100000
+    step: 1
+    unit_of_measurement: "enhed"
+    mode: box
+    initial: 1000
+
+  varme_okonomi_paafyldning:
+    name: Varme økonomi - normal påfyldning
+    min: 0
+    max: 100000
+    step: 1
+    unit_of_measurement: "enhed"
+    mode: box
+    initial: 500
+
+template:
+  - sensor:
+      - name: Varme okonomi effekt
+        default_entity_id: sensor.varme_okonomi_effekt
+        unique_id: varme_okonomi_effekt
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: mdi:flash
+        state: >
+          {{ states(states('input_text.varme_okonomi_varmeeffekt_sensor')) | float(0) }}
+
+      - name: Varme okonomi effekt kilde status
+        default_entity_id: sensor.varme_okonomi_effekt_kilde_status
+        unique_id: varme_okonomi_effekt_kilde_status
+        icon: mdi:flash-alert
+        state: >
+          {% set entity = states('input_text.varme_okonomi_varmeeffekt_sensor') %}
+          {% set value = states(entity) if entity not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' %}
+          {% if entity in ['unknown', 'unavailable', 'none', ''] %}
+            Effekt sensor mangler
+          {% elif value in ['unknown', 'unavailable', 'none', ''] %}
+            Effekt sensor utilgængelig
+          {% elif value | float(none) is none %}
+            Effekt sensor er ikke numerisk
+          {% else %}
+            OK
+          {% endif %}
+
+      - name: Varme okonomi elpris
+        default_entity_id: sensor.varme_okonomi_elpris
+        unique_id: varme_okonomi_elpris
+        unit_of_measurement: "kr/kWh"
+        state_class: measurement
+        icon: mdi:cash-clock
+        state: >
+          {% set fixed = states('input_number.varme_okonomi_fast_elpris') | float(0) %}
+          {% set addon = states('input_number.varme_okonomi_el_tillaeg') | float(0) %}
+          {% set vat = states('input_number.varme_okonomi_moms_faktor') | float(1) %}
+          {% set nord = states(states('input_text.varme_okonomi_nordpool_pris_sensor')) | float(none) %}
+          {% if is_state('input_select.varme_okonomi_pristype', 'Nord Pool') and nord is not none %}
+            {{ ((nord + addon) * vat) | round(3) }}
+          {% else %}
+            {{ fixed | round(3) }}
+          {% endif %}
+
+      - name: Varme okonomi omkostning rate
+        default_entity_id: sensor.varme_okonomi_omkostning_rate
+        unique_id: varme_okonomi_omkostning_rate
+        unit_of_measurement: "kr/h"
+        state_class: measurement
+        icon: mdi:cash-fast
+        state: >
+          {% set kw = states('sensor.varme_okonomi_effekt') | float(0) / 1000 %}
+          {% set price = states('sensor.varme_okonomi_elpris') | float(0) %}
+          {{ (kw * price) | round(3) }}
+
+      - name: Varme okonomi braendselspris
+        default_entity_id: sensor.varme_okonomi_braendselspris
+        unique_id: varme_okonomi_braendselspris
+        unit_of_measurement: "kr/enhed"
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {% if is_state('input_select.varme_okonomi_braendselstype', 'Olie') %}
+            {{ states('input_number.varme_okonomi_oliepris') | float(0) }}
+          {% elif is_state('input_select.varme_okonomi_braendselstype', 'Træpiller') %}
+            {{ states('input_number.varme_okonomi_pillepris') | float(0) }}
+          {% elif is_state('input_select.varme_okonomi_braendselstype', 'Halm') %}
+            {{ states('input_number.varme_okonomi_halmpris') | float(0) }}
+          {% else %}
+            {{ states('sensor.varme_okonomi_elpris') | float(0) }}
+          {% endif %}
+
+      - name: Varme okonomi lager procent
+        default_entity_id: sensor.varme_okonomi_lager_procent
+        unique_id: varme_okonomi_lager_procent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:gauge
+        state: >
+          {% set current = states('input_number.varme_okonomi_lager_aktuelt') | float(0) %}
+          {% set capacity = states('input_number.varme_okonomi_lager_kapacitet') | float(0) %}
+          {{ (current / capacity * 100) | round(1) if capacity > 0 else 0 }}
+
+      - name: Varme okonomi estimeret varmeproduktion 24 timer
+        default_entity_id: sensor.varme_okonomi_estimeret_varmeproduktion_24_timer
+        unique_id: varme_okonomi_varmeproduktion_24t
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:fire
+        state: >
+          {% set fuel = states('sensor.varme_okonomi_braendsel_24t') | float(0) %}
+          {% set value = states('input_number.varme_okonomi_braendvaerdi') | float(0) %}
+          {% set efficiency = states('input_number.varme_okonomi_virkningsgrad') | float(1) %}
+          {{ (fuel * value * efficiency) | round(2) }}
+
+      - name: Varme okonomi SCOP 24 timer
+        default_entity_id: sensor.varme_okonomi_scop_24_timer
+        unique_id: varme_okonomi_scop_24_timer
+        state_class: measurement
+        icon: mdi:chart-bell-curve
+        state: >
+          {% set heat = states('sensor.varme_okonomi_estimeret_varmeproduktion_24_timer') | float(0) %}
+          {% set electricity = states('sensor.varme_okonomi_energi_24t') | float(0) %}
+          {{ (heat / electricity) | round(2) if electricity > 0 else 0 }}
+
+      - name: Varme okonomi resterende timer
+        default_entity_id: sensor.varme_okonomi_resterende_timer
+        unique_id: varme_okonomi_resterende_timer
+        unit_of_measurement: "h"
+        state_class: measurement
+        icon: mdi:timer-sand
+        state: >
+          {% set stock = states('input_number.varme_okonomi_lager_aktuelt') | float(0) %}
+          {% set used_24 = states('sensor.varme_okonomi_braendsel_24t') | float(0) %}
+          {% set hourly = used_24 / 24 %}
+          {{ (stock / hourly) | round(1) if hourly > 0 else 0 }}
+
+      - name: Varme okonomi resterende dage
+        default_entity_id: sensor.varme_okonomi_resterende_dage
+        unique_id: varme_okonomi_resterende_dage
+        unit_of_measurement: "d"
+        state_class: measurement
+        icon: mdi:calendar-clock
+        state: >
+          {{ (states('sensor.varme_okonomi_resterende_timer') | float(0) / 24) | round(1) }}
+
+      - name: Varme okonomi naste pafyldning
+        default_entity_id: sensor.varme_okonomi_naste_pafyldning
+        unique_id: varme_okonomi_naeste_paafyldning
+        icon: mdi:calendar-alert
+        state: >
+          {% set days = states('sensor.varme_okonomi_resterende_dage') | float(0) %}
+          {% if days > 0 %}
+            {{ (now() + timedelta(days=days)).strftime('%Y-%m-%d') }}
+          {% else %}
+            Ukendt
+          {% endif %}
+
+      - name: Varme okonomi beholdning efter pafyldning
+        default_entity_id: sensor.varme_okonomi_beholdning_efter_pafyldning
+        unique_id: varme_okonomi_beholdning_efter_paafyldning
+        unit_of_measurement: "enhed"
+        state_class: measurement
+        icon: mdi:archive-plus
+        state: >
+          {% set current = states('input_number.varme_okonomi_lager_aktuelt') | float(0) %}
+          {% set refill = states('input_number.varme_okonomi_paafyldning') | float(0) %}
+          {% set capacity = states('input_number.varme_okonomi_lager_kapacitet') | float(0) %}
+          {{ [current + refill, capacity] | min | round(1) }}
+
+      - name: Varme okonomi braendsel 1 time
+        default_entity_id: sensor.varme_okonomi_braendsel_1_time
+        unique_id: varme_okonomi_braendsel_1t
+        unit_of_measurement: "enhed"
+        state_class: measurement
+        icon: mdi:fuel
+        state: >
+          {{ (states('sensor.varme_okonomi_driftstid_1_time') | float(0) * states('input_number.varme_okonomi_braendsel_pr_time') | float(0)) | round(3) }}
+
+      - name: Varme okonomi braendsel 24t
+        default_entity_id: sensor.varme_okonomi_braendsel_24t
+        unique_id: varme_okonomi_braendsel_24t
+        unit_of_measurement: "enhed"
+        state_class: measurement
+        icon: mdi:fuel
+        state: >
+          {{ (states('sensor.varme_okonomi_driftstid_24_timer') | float(0) * states('input_number.varme_okonomi_braendsel_pr_time') | float(0)) | round(3) }}
+
+      - name: Varme okonomi braendsel 7d
+        default_entity_id: sensor.varme_okonomi_braendsel_7d
+        unique_id: varme_okonomi_braendsel_7d
+        unit_of_measurement: "enhed"
+        state_class: measurement
+        icon: mdi:fuel
+        state: >
+          {{ (states('sensor.varme_okonomi_driftstid_7_dage') | float(0) * states('input_number.varme_okonomi_braendsel_pr_time') | float(0)) | round(3) }}
+
+      - name: Varme okonomi braendselsomkostning 1 time
+        default_entity_id: sensor.varme_okonomi_braendselsomkostning_1_time
+        unique_id: varme_okonomi_braendselsomkostning_1_time
+        unit_of_measurement: "kr"
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {{ (states('sensor.varme_okonomi_braendsel_1_time') | float(0) * states('sensor.varme_okonomi_braendselspris') | float(0)) | round(2) }}
+
+      - name: Varme okonomi braendselsomkostning 24t
+        default_entity_id: sensor.varme_okonomi_braendselsomkostning_24t
+        unique_id: varme_okonomi_braendselsomkostning_24t
+        unit_of_measurement: "kr"
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {{ (states('sensor.varme_okonomi_braendsel_24t') | float(0) * states('sensor.varme_okonomi_braendselspris') | float(0)) | round(2) }}
+
+      - name: Varme okonomi braendselsomkostning 7d
+        default_entity_id: sensor.varme_okonomi_braendselsomkostning_7d
+        unique_id: varme_okonomi_braendselsomkostning_7d
+        unit_of_measurement: "kr"
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {{ (states('sensor.varme_okonomi_braendsel_7d') | float(0) * states('sensor.varme_okonomi_braendselspris') | float(0)) | round(2) }}
+
+  - binary_sensor:
+      - name: Varme okonomi drift aktiv
+        default_entity_id: binary_sensor.varme_okonomi_drift_aktiv
+        unique_id: varme_okonomi_drift_aktiv
+        device_class: running
+        icon: mdi:engine
+        state: >
+          {{ states('sensor.varme_okonomi_effekt') | float(0) > states('input_number.varme_okonomi_drift_graense_w') | float(50) }}
+
+sensor:
+  - platform: integration
+    source: sensor.varme_okonomi_effekt
+    name: Varme økonomi energi total
+    unique_id: varme_okonomi_energi_total
+    unit_prefix: k
+    round: 3
+    method: left
+
+  - platform: integration
+    source: sensor.varme_okonomi_omkostning_rate
+    name: Varme økonomi omkostning total
+    unique_id: varme_okonomi_omkostning_total
+    round: 3
+    method: left
+
+  - platform: history_stats
+    name: Varme økonomi driftstid 1 time
+    unique_id: varme_okonomi_driftstid_1_time
+    entity_id: binary_sensor.varme_okonomi_drift_aktiv
+    state: "on"
+    type: time
+    start: "{{ now() - timedelta(hours=1) }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Varme økonomi driftstid 24 timer
+    unique_id: varme_okonomi_driftstid_24_timer
+    entity_id: binary_sensor.varme_okonomi_drift_aktiv
+    state: "on"
+    type: time
+    start: "{{ now() - timedelta(hours=24) }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Varme økonomi driftstid 7 dage
+    unique_id: varme_okonomi_driftstid_7_dage
+    entity_id: binary_sensor.varme_okonomi_drift_aktiv
+    state: "on"
+    type: time
+    start: "{{ now() - timedelta(days=7) }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Varme økonomi start antal 24 timer
+    unique_id: varme_okonomi_start_antal_24_timer
+    entity_id: binary_sensor.varme_okonomi_drift_aktiv
+    state: "on"
+    type: count
+    start: "{{ now() - timedelta(hours=24) }}"
+    end: "{{ now() }}"
+
+utility_meter:
+  varme_okonomi_energi_1t:
+    source: sensor.varme_okonomi_energi_total
+    cycle: hourly
+
+  varme_okonomi_energi_24t:
+    source: sensor.varme_okonomi_energi_total
+    cycle: daily
+
+  varme_okonomi_energi_7d:
+    source: sensor.varme_okonomi_energi_total
+    cycle: weekly
+
+  varme_okonomi_omkostning_1t:
+    source: sensor.varme_okonomi_omkostning_total
+    cycle: hourly
+
+  varme_okonomi_omkostning_24t:
+    source: sensor.varme_okonomi_omkostning_total
+    cycle: daily
+
+  varme_okonomi_omkostning_7d:
+    source: sensor.varme_okonomi_omkostning_total
+    cycle: weekly
