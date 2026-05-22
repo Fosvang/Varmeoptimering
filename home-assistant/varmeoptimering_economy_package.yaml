@@ -162,24 +162,47 @@ template:
         state_class: measurement
         icon: mdi:flash
         state: >
-          {{ states(states('input_text.varme_okonomi_varmeeffekt_sensor')) | float(0) }}
+          {% set configured = states('input_text.varme_okonomi_varmeeffekt_sensor') %}
+          {% set shared = states('input_text.varme_pumpe_power_sensor') %}
+          {% set candidates = [
+            configured,
+            shared,
+            'sensor.varme_pumpe_effekt'
+          ] %}
+          {% set ns = namespace(value=none) %}
+          {% for entity in candidates %}
+            {% set raw = states(entity) if entity not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' %}
+            {% set number = raw | float(none) %}
+            {% if ns.value is none and number is not none %}
+              {% set ns.value = number %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.value | default(0, true) | round(2) }}
 
       - name: Varme okonomi effekt kilde status
         default_entity_id: sensor.varme_okonomi_effekt_kilde_status
         unique_id: varme_okonomi_effekt_kilde_status
         icon: mdi:flash-alert
         state: >
-          {% set entity = states('input_text.varme_okonomi_varmeeffekt_sensor') %}
-          {% set value = states(entity) if entity not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' %}
-          {% if entity in ['unknown', 'unavailable', 'none', ''] %}
-            Effekt sensor mangler
-          {% elif value in ['unknown', 'unavailable', 'none', ''] %}
-            Effekt sensor utilgængelig
-          {% elif value | float(none) is none %}
-            Effekt sensor er ikke numerisk
-          {% else %}
-            OK
-          {% endif %}
+          {% set configured = states('input_text.varme_okonomi_varmeeffekt_sensor') %}
+          {% set shared = states('input_text.varme_pumpe_power_sensor') %}
+          {% set candidates = [
+            ('Okonomi', configured),
+            ('Pumpe', shared),
+            ('Fallback', 'sensor.varme_pumpe_effekt')
+          ] %}
+          {% set ns = namespace(status='Effekt sensor mangler') %}
+          {% for label, entity in candidates %}
+            {% set raw = states(entity) if entity not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' %}
+            {% if ns.status == 'Effekt sensor mangler' and raw not in ['unknown', 'unavailable', 'none', ''] and raw | float(none) is not none %}
+              {% set ns.status = 'OK - ' ~ label ~ ': ' ~ entity %}
+            {% elif ns.status == 'Effekt sensor mangler' and entity not in ['unknown', 'unavailable', 'none', ''] and raw in ['unknown', 'unavailable', 'none', ''] %}
+              {% set ns.status = label ~ ' sensor utilgaengelig: ' ~ entity %}
+            {% elif ns.status == 'Effekt sensor mangler' and entity not in ['unknown', 'unavailable', 'none', ''] and raw | float(none) is none %}
+              {% set ns.status = label ~ ' sensor er ikke numerisk: ' ~ entity %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.status }}
 
       - name: Varme okonomi elpris
         default_entity_id: sensor.varme_okonomi_elpris

@@ -60,8 +60,6 @@ cards:
     entities:
       - entity: input_text.varme_okonomi_varmeeffekt_sensor
         name: Shelly EM / effekt sensor
-      - entity: sensor.varme_okonomi_effekt_kilde_status
-        name: Effekt sensor status
       - entity: input_number.varme_okonomi_drift_graense_w
         name: Driftgrænse
       - entity: sensor.varme_okonomi_driftstid_1_time
