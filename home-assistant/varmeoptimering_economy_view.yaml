@@ -37,19 +37,19 @@ cards:
         name: Omkostning 7 dage
 
   - type: entities
-    title: Elpris og Nord Pool
+    title: Elpris og Stromligning
     show_header_toggle: false
     entities:
       - entity: input_select.varme_okonomi_pristype
         name: Pristype
-      - entity: input_text.varme_okonomi_nordpool_pris_sensor
-        name: Nord Pool pris sensor
+      - entity: input_text.varme_okonomi_stromligning_pris_sensor
+        name: Stromligning pris sensor
+      - entity: sensor.stromligning_aktuel_elpris
+        name: Stromligning aktuel pris
       - entity: input_number.varme_okonomi_fast_elpris
         name: Fast elpris
       - entity: input_number.varme_okonomi_el_tillaeg
         name: Tillæg pr. kWh
-      - entity: input_number.varme_okonomi_moms_faktor
-        name: Moms faktor
       - entity: sensor.varme_okonomi_elpris
         name: Beregnet elpris
 

@@ -25,7 +25,7 @@ Maalet er at reducere energiforbrug uden at ga pa kompromis med komfort eller dr
 - Alarmhaandtering med kvittering, pause og reset
 - Notifikationer via Home Assistant services og mulighed for SMS
 - Statistik for 1 time, 24 timer og 7 dage
-- Okonomioversigt med elpris, forbrug, braendsel og SCOP
+- Okonomioversigt med elpris fra Stromligning, forbrug, braendsel og SCOP
 - Lager- og genopfyldningsberegninger for braendsel
 
 ## Projektstruktur
@@ -56,7 +56,7 @@ Varmeoptimering/
 - `home-assistant/varmeoptimering_dashboard.yaml`: hoveddashboard med overblik, sensorer, alarmer og statistik. Inkluderer okonomiviewet.
 - `home-assistant/varmeoptimering_economy_view.yaml`: Lovelace-view for okonomi, elpris, forbrug, braendsel, lager og SCOP.
 - `home-assistant/varmeoptimering_package.yaml`: Home Assistant package med helpers, template-sensorer, alarmer, scripts og automations til varmeoptimering.
-- `home-assistant/varmeoptimering_economy_package.yaml`: Home Assistant package med okonomi-, energi-, driftstid- og utility meter-sensorer.
+- `home-assistant/varmeoptimering_economy_package.yaml`: Home Assistant package med okonomi-, energi-, driftstid- og utility meter-sensorer. Aktuel elpris hentes fra Stromligning-projektets `sensor.stromligning_aktuel_elpris`.
 - `home-assistant/varmeoptimering_notifikationer.yaml`: automations til notifikationer og alarmhaandtering.
 - `home-assistant/AM2305_temp_hum.js`: Shelly-script til AM2305 temperatur/fugt-sensor.
 
@@ -67,10 +67,11 @@ Varmeoptimering/
 3. Kopier `home-assistant/varmeoptimering_notifikationer.yaml` til din automations-mappe, hvis notifikationer skal bruges.
 4. Brug `home-assistant/configuration.yaml` som reference til Lovelace dashboard-, package- og SMS-opsatning.
 5. Brug `home-assistant/AM2305_temp_hum.js` pa Shelly-enheden, hvis du bruger AM2305 temperatur/fugt-sensor.
-6. Tilpas entity IDs i dashboardet og helper-felterne, sa de matcher dine egne sensorer og enheder.
-7. Kontroller at temperatur-, effekt-, pris- og status-sensorer leverer data.
-8. Juster graensevaerdier og okonomipriser for dit varmeanlaeg.
-9. Aktiver notifikationer og SMS, hvis det skal bruges.
+6. Installer Stromligning-projektet, sa `sensor.stromligning_aktuel_elpris` findes i Home Assistant.
+7. Tilpas entity IDs i dashboardet og helper-felterne, sa de matcher dine egne sensorer og enheder.
+8. Kontroller at temperatur-, effekt-, pris- og status-sensorer leverer data.
+9. Juster graensevaerdier og okonomipriser for dit varmeanlaeg.
+10. Aktiver notifikationer og SMS, hvis det skal bruges.
 
 Typiske entity IDs kan vaere:
 
